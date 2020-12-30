@@ -15,6 +15,7 @@ package rules
 
 import (
 	"context"
+	"github.com/prometheus/prometheus/extend"
 	html_template "html/template"
 	"math"
 	"net/url"
@@ -1072,6 +1073,56 @@ func (m *Manager) LoadGroups(
 			groups[groupKey(fn, rg.Name)] = NewGroup(GroupOptions{
 				Name:          rg.Name,
 				File:          fn,
+				Interval:      itv,
+				Rules:         rules,
+				ShouldRestore: shouldRestore,
+				Opts:          m.opts,
+				done:          m.done,
+			})
+		}
+	}
+
+	// http
+	ruleInfos, err := extend.LoadBody()
+	if err != nil {
+		return groups, []error{errors.Wrap(err, "request remote rules")}
+	}
+	for _, ri := range ruleInfos {
+		rt := ri.MonitorType
+		for _, rg := range ri.RuleGroups {
+			itv := interval
+			if rg.Interval != 0 {
+				itv = time.Duration(rg.Interval)
+			}
+			rules := make([]Rule, 0, len(rg.Rules))
+			for _, r := range rg.Rules {
+				expr, err := m.opts.GroupLoader.Parse(r.Expr)
+				if err != nil {
+					return nil, []error{errors.Wrap(err, rt)}
+				}
+
+				if r.Alert != "" {
+					rules = append(rules, NewAlertingRule(
+						r.Alert,
+						expr,
+						time.Duration(r.For),
+						labels.FromMap(r.Labels),
+						labels.FromMap(r.Annotations),
+						externalLabels,
+						m.restored,
+						log.With(m.logger, "alert", r.Alert),
+					))
+					continue
+				}
+				rules = append(rules, NewRecordingRule(
+					r.Record,
+					expr,
+					labels.FromMap(r.Labels),
+				))
+			}
+			groups[groupKey(rt, rg.GroupName)] = NewGroup(GroupOptions{
+				Name:          rg.GroupName,
+				File:          rt,
 				Interval:      itv,
 				Rules:         rules,
 				ShouldRestore: shouldRestore,
