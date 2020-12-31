@@ -1,0 +1,5 @@
+groups:
+  - name: record-test
+    rules:
+      - record: rabbitmq_process_resident_memory_mb
+        expr: rate(rabbitmq_process_resident_memory_bytes{job="rabbitmq-cluster"}[60s])/1000/1000

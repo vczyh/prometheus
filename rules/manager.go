@@ -1085,7 +1085,9 @@ func (m *Manager) LoadGroups(
 	// http
 	ruleInfos, err := extend.LoadBody()
 	if err != nil {
-		return groups, []error{errors.Wrap(err, "request remote rules")}
+		// 如果没提供http接口，则吞掉错误
+		//return groups, []error{errors.Wrap(err, "request remote rules")}
+		level.Error(m.logger).Log("msg", "failed to resolve rules from http")
 	}
 	for _, ri := range ruleInfos {
 		rt := ri.MonitorType

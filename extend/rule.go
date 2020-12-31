@@ -39,7 +39,7 @@ type Rule struct {
 }
 
 func LoadBody() ([]RuleInfo, error) {
-	resp, err := http.Get("http://127.0.0.1:8080/v1/rules")
+	resp, err := http.Get("http://10.0.7.141:8080/v1/rules")
 	if err != nil {
 		return nil, err
 	}
